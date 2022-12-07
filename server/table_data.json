@@ -1,0 +1,22 @@
+{
+    "table":    "{{table}}",
+    "channels": [
+        {%- for c in channels -%}
+            {{c}}{{',' if not loop.last }}
+        {%- endfor -%}
+    ],
+    "data": [
+        {% for tv, clock, val in data %}
+            {
+                "clock":    {{clock}},
+                "tv":       {{tv|as_json}},
+                "value":    [
+                    {%- for v in val -%}
+                        {{v|nones_to_nulls}}{{',' if not loop.last }}
+                    {%- endfor -%}
+                ]
+            }{{',' if not loop.last }}
+        {% endfor %}
+    ]
+}
+            

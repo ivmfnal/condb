@@ -1,0 +1,74 @@
+<html>
+<head>
+
+<style type="text/css">
+    body, td, th {
+        font-family:    sans-serif, verdana;
+        font-size:  13px;
+        }
+
+    body {    
+        padding: 20px;
+    }
+    
+    table.data {
+        border-collapse: collapse;
+        }
+
+    table.form {
+        }
+        
+    .form td, .form th {
+        border: 0;
+    }
+    
+    .form th {
+        color: gray;
+        font-weight: bold;
+        text-align: right;
+        vertical-align: top;
+        padding: 4px 6px;
+        }
+        
+    .form td {
+        text-align: left;
+        }
+
+    .data td, .data th {
+        border: 1px solid #BBB;
+        padding: 4px 6px;
+    }
+        
+    .data th {
+        text-align: center;
+        color: #666;
+        }
+    .data td {
+        text-align: right
+        }
+        
+    .partial_shadow td {
+        color: #888;
+    }
+    .complete_shadow td {
+        background-color: #DDD;
+        color: #888;
+    }
+</style>
+
+{% block head %}{% endblock %}
+
+</head>
+
+<body>
+
+<h1>{{GLOBAL_Title}}</h1>
+
+{% block body %}{% endblock %}
+
+<div style="position:fixed; right:10px; bottom: 5px; z-index:-1; color: gray; font-size: 10px"><i>Versions: GUI:{{GLOBAL_GUI_Version}}, API:{{GLOBAL_API_Version}}</i></div>
+
+</body>
+</html>
+    
+

@@ -1,0 +1,110 @@
+{% extends 'template.html' %}
+
+{% block body %}
+
+<h2>Snapshots in table: {{table}}</h2>
+
+<p><a href="./index?namespace={{namespace}}">&lt; other tables</a>&nbsp;&nbsp;&nbsp;<a href="./plot_table?namespace={{namespace}}&table={{table}}">plot data</a></p>
+
+<h3>Filter Snapshots</h3>
+
+<form method="GET" action="">
+    <input type=hidden name="table" value="{{table}}"/>
+    <input type=hidden name="namespace" value="{{namespace}}"/>
+    <table class=form>
+        <tr>
+            <th>Columns:</th>
+            <td>{% for c in columns %}{{c}}{{', ' if not loop.last}}{% endfor %}
+            </td>
+        </tr>
+        <tr>
+            <th>Show shadowed:</th>
+            <td><input type="checkbox" name="show_shadowed"
+                    {{'checked="checked"' if show_shadowed}}/>
+            </td>
+        </tr>
+        <tr>
+            <th>Numeric time:</th>
+            <td><input type="checkbox" name="numeric_time"
+                    {{'checked="checked"' if numeric_time}}/>
+            </td>
+        </tr>
+        <tr>
+            <th>Tag:</th>
+            <td><select name="tag">
+                    <option value="">- current -</option>
+                    {% for t in tags %}
+                        <option value="{{t}}"
+                            {{'selected="selected"' if t == tag_selected}}>{{t}}</option>
+                    {% endfor %}
+                </select>
+            </td>
+        </tr>
+        <tr>
+            <th>Data type:</th>
+            <td><select name="data_type">
+                    <option value="*">- any -</option>
+                    {% for t in data_types %}
+                        <option value="{{t or ''}}"
+                            {{'selected="selected"' if t == type_selected}}>{{t or '(empty)'}}</option>
+                    {% endfor %}
+                </select>
+            </td>
+        </tr>
+        <tr>
+            <td></td>
+            <td><input type=submit value="Apply"/></td>
+        </tr>
+    </table>
+</form>
+            
+<h3>Snapshots</h3>
+
+</script>
+
+<!--
+<p>Show times numerically:&nbsp;<input type="checkbox" id="time_as_numbers" 
+    onchange="show_times_as_numbers(this.checked)"/></p>
+-->
+
+<table class="data snapshots">
+    <tr>
+        <th>Snapshot id</th><th>Record time</th><th>Data Type</th>
+        <th>Snapshot valid from</th><th>to</th>
+        <th>Channel range from</th><th>to</th>
+        <th>Number of channels</th>
+        <th>Update count</th>
+        <th>Update Tv min</th><th>Tv max</th>
+        <th>Shadowed ?</th>
+        <th>Tags</th>
+    </tr>
+    {% for s in snapshots %}
+        {% if not s.shadowed or show_shadowed %}
+            <tr class="
+                {%- if s.shadowed -%}complete_shadow{%- else -%}
+                    {%- if s.partiallyShadowed -%}
+                        partial_shadow
+                    {%- endif %}
+                {%- endif -%}
+            ">
+                <td>{{s.Id}}</td>
+                <td>{{s.Tr|dtfmt("%Y-%m-%d %H:%M:%S %Z")}}</td>
+                <td>{{s.DataType or "(any)"}}</td>
+                <td>{{s.Tv|format_tv(numeric_time)}}</td>
+                <td>{{s.Tv_end|format_tv(numeric_time) if s.Tv_end else "-"}}</td>
+                <td>{{s.ChannelRange[0]}}</td><td>{{s.ChannelRange[1]}}</td>
+                <td>{{s.NChannels}}</td>
+                <td>{{s.updateCount()}}</td>
+                <td>{{s.TvRange[0]|format_tv(numeric_time)}}</td><td>{{s.TvRange[1]|format_tv(numeric_time)}}</td>
+                <td>{{'completely' if s.shadowed else 'partially' if s.partiallyShadowed else 'no'}}&nbsp;
+                    {%- if s.shadowed or s.partiallyShadowed %}by {{s.shadowSnapshot}}
+                    {% endif %}
+                <td>{% for t in s.tagList %}{{t}}{% if not loop.last %}, {% endif %}{% endfor %}
+                </td>
+            </tr>
+            
+        {% endif %}
+    {% endfor %}
+</table>
+
+{% endblock %}

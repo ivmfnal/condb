@@ -1,0 +1,292 @@
+{% extends 'template.html' %}
+
+{% block head %}
+<!-- <script type="text/javascript" src="https://www.google.com/jsapi"></script> -->
+
+<script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script>
+
+<style type="text/css">
+    td.chart {
+        height:400px;
+        width:800px;
+        text-align:center;
+        vertical-align:middle;
+        border: 0;
+        }
+</style>
+
+<script type="text/javascript">
+
+google.charts.load('current', {'packages':['corechart']});
+
+function XML_HTTP()
+{
+    var xmlhttp;
+
+    if (window.XMLHttpRequest)
+      {// code for IE7+, Firefox, Chrome, Opera, Safari
+      xmlhttp=new XMLHttpRequest();
+      }
+    else
+      {// code for IE6, IE5
+      xmlhttp=new ActiveXObject("Microsoft.XMLHTTP");
+      }
+    return xmlhttp;
+}
+
+function state_changed_callback()
+{
+    if (this.readyState==4 && this.status==200)
+        this.data_received_callback();
+}
+
+function data_received_callback()
+{
+        var c = this.data_receiver;
+        this.data_receiver= null;
+        var parsed = null;
+        var error = false;
+        try         {   
+                        parsed = JSON.parse(this.responseText); 
+                    }
+        catch(err)  {
+                        error = true;
+                        if( c.data_error )
+                        {   c.data_error(this, "JSON parse error"); }
+                    }
+
+        if( !error )
+            c.data_received(parsed);
+}
+
+function XMLRequest(url, receiver, cacheable)
+{
+    var http_request = XML_HTTP();
+    http_request.data_receiver = receiver;
+    http_request.data_received_callback = data_received_callback;
+    http_request.onreadystatechange = state_changed_callback;
+    if( !cacheable )
+    {
+        if( url.indexOf("?") < 0 )
+            url += "?_=" + Math.random();
+        else
+            url += "&_=" + Math.random();
+    }
+    http_request.open("GET", url, true);
+    http_request.send();
+    return http_request;
+}            
+
+
+function chart(element, options, url)
+{
+    this.options = options;
+    this.url = url;
+    this.chart_object = new google.visualization.LineChart(document.getElementById(element));
+    this.xml_request = null;
+
+    this.data_received = function(data)
+    {
+        var dataTable = this.makeDataTable(data);
+        var t0 = data.minT;
+        var t1 = data.maxT;
+        if ( t0 != null )
+        {
+            var ha = this.options.hAxis;
+            if( ha == null )
+            {
+                ha = {minValue:t0, maxValue:t1};
+                this.options.hAxis = ha;
+            }
+            else
+            {
+                ha.minValue = t0;
+                ha.maxValue = t1;
+            }
+        }
+        this.chart_object.draw(dataTable, this.options);
+        this.xml_request = null;
+    }
+
+    this.request_data = function ()
+    {
+        this.xml_request = XMLRequest(this.url, this, false);
+    }
+    return this;
+}
+
+</script>
+
+{% endblock %}
+
+
+{% block body %}
+
+<h2>Plot table {{namespace}}.{{table}}</h2>
+
+
+<p><a href="./index?namespace={{namespace}}">&lt; other tables</a>&nbsp;&nbsp;&nbsp;<a href="./show_table?namespace={{namespace}}&table={{table}}">show snapshots</a></p>
+
+
+{% if table %}
+                            
+    <p>
+        <form action="" method="POST">
+            <input type="hidden" name="do_plot" value="yes"/>
+            <input type="hidden" name="namespace" value="{{namespace}}"/>
+            <input type="hidden" name="table" value="{{table}}"/>
+            <table class="form">
+                <tr>
+                    <th>Channels (from:to)</th>
+                    <td><input type="text" name="channels" value="{{channels or ''}}"/></td>
+                </tr>
+                
+                <tr>
+                    <th>Data type</th>
+                    <td><select name="data_type">
+                        <option value="">(common)</option>
+                        {% for t in data_types %}
+                            <option value="{{t}}" {{"selected=selected" if t == data_type}}>{{t}}</option>
+                        {% endfor %}
+                    </td>
+                </tr>
+                <tr>
+                    <th>Tag</th>
+                    <td><select name="tag">
+                        <option value="">(none)</option>
+                        {% for t in tags %}
+                            <option value="{{t}}" {{"selected=selected" if t == tag_selected}}>{{t}}</option>
+                        {% endfor %}
+                    </td>
+                </tr>
+                <tr>
+                    <th>Time</th>
+                    <td>from:&nbsp;<input type="text" name="t0" value="{{t0}}"/>&nbsp;&nbsp;to:&nbsp;<input type="text" name="t1" value="{{t1}}"/></td>
+                </tr>
+                <tr>
+                    <th>Column</th>
+                    <td><select name="column">
+                        {% for c in columns %}
+                            <option value="{{c}}" {{"selected=selected" if c == column}}>{{c}}</option>
+                        {% endfor %}
+                    </td>
+                </tr>
+                <tr>
+                    <th>Time as</th>
+                    <td><select name="time_as">
+                            <option value="time" {{ 'selected="selected"' if not time_as_int else '' }}>time</option>
+                            <option value="number" {{ 'selected="selected"' if time_as_int else '' }}>numeric</option>
+                        </select>
+                    </td>
+                </tr>
+                <tr>
+                    <td></td>
+                    <td><input type="submit" value="Plot"/>
+                    </td>
+                </tr>
+            </table>
+        </form>
+    </p>
+
+{% endif %}
+
+<!-- data url: {{data_url}} -->
+
+<div id="the_chart"/>
+
+<script type="text/javascript">
+
+    //-------------------------
+    // Request frequencies
+    
+    <!-- dt0: {{dt0}}, dt1: {{dt1}} -->
+
+    function drawChart()
+    {
+        var f_chart = new chart("the_chart", 
+                {
+                    title: "",
+                    legend: {   position: "right"   },
+                    //width:800, 
+                    lineWidth:1, 
+                    hAxis: {
+                        {% if time_as_int %}
+                            format: "",
+                            minValue:   {{dt0|as_number}},
+                            maxValue:   {{dt1|as_number}},
+                        {% else %}
+                            gridlines: {
+                                        count: -1,
+                                        units: {
+                                          days: {format: ['MMM dd']},
+                                          hours: {format: ['HH:mm', 'ha']},
+                                        }
+                                      },
+                            minorGridlines: {
+                                    units: {
+                                      hours: {format: ['hh:mm:ss a', 'ha']},
+                                      minutes: {format: ['HH:mm a Z', ':mm']}
+                                    }
+                                },
+                            minValue:   {{dt0|as_json}}, 
+                            maxValue:   {{dt1|as_json}},
+                        {% endif %}
+                        title:  "time"
+                    },
+                    pointSize: 2,
+                    vAxis:{title:"{{column}}"},
+                    explorer:   {   axis:   "horizontal",   actions:    ["dragToZoom", "rightClickToReset"],
+                                    maxZoomIn: 0.1 
+                                }
+                },
+                "{{data_url}}"
+                );
+            
+        f_chart.makeDataTable = function(data)
+        {
+            var dt = new google.visualization.DataTable();
+        
+            {% if time_as_int %}
+                dt.addColumn("number", "Time");
+            {% else %}
+                dt.addColumn("datetime", "Time");
+            {% endif %}
+        
+            var i;
+            for( i=0; i < data.channels.length; i++ )
+            {
+                var c = data.channels[i];
+                dt.addColumn("number", "ch "+c);
+                dt.addColumn({  type:   "string", role:   "style" });
+            }
+        
+            var d = data.data;    
+            for( i=0; i < d.length; i++ )
+            {
+                var tup = d[i];
+                {% if time_as_int %}
+                    var t = tup.clock;
+                {% else %}
+                    var t = eval("new " + tup.tv);
+                {% endif %}
+                var row = [t]
+                var style = null;
+                if( i == d.length - 1 )
+                   style = "point {   size: 0; }";
+                var j;
+                for( j=0; j < tup.value.length; j++ )
+                    row = row.concat([tup.value[j], style])
+                dt.addRow(row);
+            }
+            return dt;
+        }
+    
+        f_chart.request_data();
+    }
+    
+    google.charts.setOnLoadCallback(drawChart);
+
+</script>
+
+
+{% endblock %}

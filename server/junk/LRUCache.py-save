@@ -1,0 +1,46 @@
+from datetime import datetime
+
+class LRUCache:
+
+    def __init__(self, maxslots, lowwater = None):
+        self.Cache = {}
+        self.MaxSlots = maxslots
+        self.LowWater = lowwater
+        
+    def get(self, k):
+        if not self.Cache.has_key(k):   return None
+        t, data = self.Cache[k]
+        self.Cache[k] = (datetime.now(), data)
+        return data
+        
+    __getitem__ = get
+    
+    def purge(self):
+        nkeep = self.LowWater
+        if nkeep == None:   nkeep = self.MaxSlots
+        if len(self.Cache) > nkeep:
+            lst = self.Cache.items()
+            # sort by access time in reverse order, latest first
+            lst.sort(lambda x, y:
+                -cmp(x[1][0], y[1][0]))
+            while lst and len(lst) > nkeep:
+                k, v = lst.pop()
+                del self.Cache[k]
+        
+    def put(self, k, data):
+        self.Cache[k] = (datetime.now(), data)
+        self.purge()
+        
+    __setitem__ = put
+    
+    def remove(self, k):
+        try:    del self.Cache[k]
+        except KeyError:    pass
+        
+    __delitem__ = remove
+        
+    def clear(self):
+        self.Cache = {}
+    
+            
+        
