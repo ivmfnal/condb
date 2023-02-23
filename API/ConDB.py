@@ -914,6 +914,7 @@ create index %T_update_inx on %t_update (__snapshot_id, __tv, __channel);
             exists = False
         if not exists:
             c = self.DB.cursor()
+            sql = self.createSQL(self.Name, owner, column_types, grants.get('r',[]), grants.get('w',[]))
             if owner:
                 c.execute("set role %s" % (owner,))
             columns = ",".join(["%s %s" % (n,t) for n,t in column_types])
@@ -945,6 +946,42 @@ create index %T_update_inx on %t_update (__snapshot_id, __tv, __channel);
                 self.execute(grant_sql)
             c.execute("commit")
                         
+    @staticmethod
+    def createSQL(table, owner, column_types, read_roles, write_roles):
+        # table can be either <table> or <namespace>.<table>
+
+        sql = ""
+        if owner:
+            sql += f"set role {owner};\n\n"
+
+        if "." in table:
+            namespace, table = table.split(".", 1)
+            sql += f"set search_path to {namespace};\n\n"
+
+        columns = ",".join(["%s %s" % (n,t) for n,t in column_types])
+        sql += CDTable.CreateTables.replace("%d", columns) + "\n\n"
+
+        if read_roles:
+            read_roles = ','.join(read_roles)
+            sql += """grant select on 
+                    %t_snapshot,
+                    %t_tag,
+                    %t_tag_snapshot,
+                    %t_update,
+                    %t_snapshot_data,
+                    %t_snapshot___id_seq
+                    to """ + read_roles + ";\n\n"
+        if write_roles:
+            write_roles = ','.join(write_roles)
+            sql += """grant insert, delete, update on 
+                    %t_snapshot,
+                    %t_tag,
+                    %t_tag_snapshot,
+                    %t_update,
+                    %t_snapshot_data,
+                    to """ + write_roles + ";\n\n"
+        return sql.replace("%t", table).replace("%T", table)
+
     def purgeShadowedSnapshots(self, lst):
         # lst: [snapshot, ...]
         # make sure snapshots are ordered by tr
