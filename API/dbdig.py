@@ -71,7 +71,7 @@ class DbDigPostgres(DbDigImpl):
         Find all namespaces
         """
         c = self.Conn.cursor()
-        sql = """select * from pg_namespace where nspname !~ 'pg_' and nspname != 'information_schema'"""
+        sql = """select nspname from pg_namespace where nspname !~ 'pg_' and nspname != 'information_schema'"""
 
         c.execute(sql)
         dd = c.fetchall()
@@ -79,7 +79,7 @@ class DbDigPostgres(DbDigImpl):
         if dd:
             return [d[0] for d in dd]
         else:
-            return None
+            return []
 
 
     def tables(self, nspace):
@@ -95,7 +95,7 @@ class DbDigPostgres(DbDigImpl):
         if dd:
             return [d[0] for d in dd]
         else:
-            return None
+            return []
 
     def columns(self, nspace, table):
         """
@@ -122,7 +122,7 @@ class DbDigPostgres(DbDigImpl):
             return dd
 ###            return pp(c, dd)
         else:
-            return None
+            return []
 
 
     def indexes(self, nspace, table):
@@ -140,7 +140,7 @@ class DbDigPostgres(DbDigImpl):
         if dd:
             return dd
         else:
-            return None
+            return []
 
 
     def pKey(self, nspace, table):
@@ -208,7 +208,7 @@ class DbDigPostgres(DbDigImpl):
                 reply.append(self.keyDef(nspace, kn[0]))
             return reply
         else:
-            return None
+            return []
 
 
     def keyDef(self, nspace, kname):
