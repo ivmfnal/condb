@@ -860,7 +860,7 @@ create index %T_update_inx on %t_update (__snapshot_id, __tv, __channel);
         return self.DB.execute(self.Name, sql, args)
 
     def copy_from(self, data, table, columns):
-        return self.DB.copy_from(self.Namespace, self.TableName, data, table, columns)
+        return self.DB.copy_from(self.Name, data, table, columns)
 
     @staticmethod
     def create(db, name, column_types, owner, grants = {}, drop_existing=False):
