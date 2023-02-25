@@ -43,7 +43,7 @@
         <tr>
             <th>Data type:</th>
             <td><select name="data_type">
-                    <option value="*">- any -</option>
+                    <option value="">- any -</option>
                     {% for t in data_types %}
                         <option value="{{t or ''}}"
                             {{'selected="selected"' if t == type_selected}}>{{t or '(empty)'}}</option>
