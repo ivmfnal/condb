@@ -84,12 +84,15 @@ class ConDB:
         #print "executed. t=%s" % (time.time() - t0,)
         return c
 
-    def copy_from(self, title, data, table_template, columns):
-        table = table_template.replace('%t', title)
+    def copy_from(self, table, data, table_template, columns):
+        # table: <table> or <schema>.<table>
         c = self.cursor()
-        #print "copy_from(data=%s, \ntable=%s,\ncolumns=%s" % (
-        #        data, table, columns)
-        c.copy_from(data, table, columns=columns)
+        table = table_template.replace('%t', table)
+        assert "'" not in table
+        assert sum(x == '.' for x in table) < 2
+        columns = ','.join(columns)
+        assert "'" not in columns
+        c.copy_expert(f"copy {table} ({columns}) from stdin", data)
         return c
         
     def disconnect(self):
@@ -857,7 +860,7 @@ create index %T_update_inx on %t_update (__snapshot_id, __tv, __channel);
         return self.DB.execute(self.Name, sql, args)
 
     def copy_from(self, data, table, columns):
-        return self.DB.copy_from(self.Name, data, table, columns)
+        return self.DB.copy_from(self.Namespace, self.TableName, data, table, columns)
 
     @staticmethod
     def create(db, name, column_types, owner, grants = {}, drop_existing=False):
